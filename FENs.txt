@@ -1,0 +1,28 @@
+Aquí están las mismas posiciones separadas por punto y coma:
+
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1;
+rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2;
+r1bqk2r/pp2nppp/2n1p3/2ppP3/3P4/2PB1N2/PP3PPP/RNBQ1RK1 b kq - 0 8;
+rnb1kb1r/pp3ppp/2p5/4q3/4n3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 7;
+1k1r3r/ppp2ppp/8/2b1p3/4P3/2P5/PP3PPP/2KR3R w - - 0 15;
+6k1/5ppp/8/8/8/8/1R3PPP/1R4K1 w - - 0 1; 8/3k4/p2P4/8/2K5/8/8/8 w - - 0 1;
+r1bqk2r/ppp2Npp/2n5/2b5/2B5/8/PPPP1PPP/RNBQK2R b KQkq - 0 7;
+r4rk1/pp1n1ppp/2p1p3/3pP3/3P4/2N2P2/PP4PP/R4RK1 w - - 0 15;
+r1bqkb1r/ppp2ppp/2n5/3np3/2B5/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6
+
+
+Aquí tienes 50 posiciones FEN organizadas aproximadamente de más sencillas a más complejas, separadas por punto y coma:
+
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1; rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1; rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2; rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2; r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4; r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3; rnbqkb1r/ppp2ppp/3p1n2/4p3/4P3/3P1N2/PPP2PPP/RNBQKB1R w KQkq - 0 4; r1bqk2r/pppp1ppp/2n2n2/4p3/2BPP3/2P2N2/PP3PPP/RNBQK2R b KQkq - 0 5; r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 5 7; r2qkb1r/ppp2ppp/2n2n2/3pp3/8/2N2NP1/PPPPPP1P/R1BQKB1R w KQkq - 0 5; r1bqkb1r/pp3ppp/2n2n2/2pp4/3P4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 7; r1bqk2r/pp2bppp/2n2n2/2pp4/3P4/2N1PN2/PP2BPPP/R1BQK2R w KQkq - 3 8; r2q1rk1/pp2bppp/2n1bn2/2pp4/3P4/2N1PN2/PP2BPPP/R1BQ1RK1 w - - 6 9; rnbq1rk1/ppp1bppp/4pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w KQ - 2 7; r1bq1rk1/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PPB2PPP/R2QKB1R w KQ - 4 8; r2q1rk1/pb2bppp/1pn1pn2/3p4/2PP4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 0 9; r4rk1/pp2qppp/2n1bn2/2pp4/3P4/2N1PN2/PP2BPPP/R2Q1RK1 w - - 8 11; r1b2rk1/pp2qppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 w - - 0 12; r4rk1/pp2bppp/2n1pn2/q2p4/2pP4/2P1PN2/PPBN1PPP/R2Q1RK1 w - - 2 13; r1bq1rk1/pp3ppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 w - - 0 11; 2kr3r/ppp2ppp/2n5/2b5/4P3/2P5/PP3PPP/2KR3R w - - 0 15; r1b2rk1/pp2qppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 w - - 0 12; 2kr1b1r/ppp2ppp/2n5/8/4P3/8/PPP2PPP/2KR3R w - - 0 1; r1bqkb1r/ppp2ppp/2n5/3np3/2B5/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 6; 6k1/5ppp/8/8/8/8/1R3PPP/1R4K1 w - - 0 1; 8/3k4/p2P4/8/2K5/8/8/8 w - - 0 1; r1bqk2r/ppp2Npp/2n5/2b5/2B5/8/PPPP1PPP/RNBQK2R b KQkq - 0 7; r4rk1/pp1n1ppp/2p1p3/3pP3/3P4/2N2P2/PP4PP/R4RK1 w - - 0 15; r1b1k2r/1pq1bppp/p1n1pn2/8/3N4/2N1B3/PPP2PPP/R2QR1K1 w kq - 0 12; r2qk2r/pb3ppp/1pn1pn2/2pp4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w kq - 0 10; 2r3k1/5ppp/4p3/1p1n4/1P1P4/P3PP2/6PP/R4BK1 b - - 0 22; r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 b - - 0 7; r2q1rk1/pb2bppp/1pn1pn2/3p4/2PP4/2NBPN2/PP3PPP/R1BQ1RK1 b - - 0 9; r1b2rk1/pp2qppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 b - - 0 12; r4rk1/pp2bppp/2n1pn2/q2p4/2pP4/2P1PN2/PPBN1PPP/R2Q1RK1 b - - 3 13; r1b2rk1/1p3ppp/p1n1pn2/8/3N4/2N1B3/PPP2PPP/R4RK1 w - - 0 14; r2q1rk1/pb2bppp/1pn1pn2/3p4/2PP4/2NBPN2/PP3PPP/R1BQK2R w KQ - 4 10; 2kr3r/ppp2ppp/2n5/2b5/4P3/2P5/PP3PPP/2KR3R b - - 1 15; r1bqk2r/ppp2Npp/2n5/2b5/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 0 8; r2qk2r/pb3ppp/1pn1pn2/2pp4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 b kq - 0 10; 2r3k1/5ppp/4p3/1p1n4/1P1P4/P3PP2/6PP/R4BK1 w - - 1 23; r1b2rk1/pp2qppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 w - - 0 13; r4rk1/pp2bppp/2n1pn2/q2p4/2pP4/2P1PN2/PPBN1PPP/R2Q1RK1 w - - 3 14; r1bqk2r/ppp1bppp/2n2n2/3pp3/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 0 6; r2qk2r/pb3ppp/1pn1pn2/2pp4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w kq - 0 11; r1b2rk1/1p3ppp/p1n1pn2/8/3N4/2N1B3/PPP2PPP/R4RK1 b - - 1 14; 2kr3r/ppp2ppp/2n5/2b5/4P3/2P5/PP3PPP/2KR3R w - - 2 16; r1bqk2r/ppp2Npp/2n5/2b5/2B5/8/PPPP1PPP/RNBQK2R w KQkq - 1 8; r2qk2r/pb3ppp/1pn1pn2/2pp4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w kq - 1 11; 2r3k1/5ppp/4p3/1p1n4/1P1P4/P3PP2/6PP/R4BK1 w - - 2 24; r1b2rk1/pp2qppp/2n1pn2/3p4/2pP4/2P1PN2/PPB2PPP/R2Q1RK1 w - - 1 14; r4rk1/pp2bppp/2n1pn2/q2p4/2pP4/2P1PN2/PPBN1PPP/R2Q1RK1 w - - 4 15; r1bqk2r/ppp1bppp/2n2n2/3pp3/2PP4/2N2N2/PP2PPPP/R1BQKB1R b KQkq - 1 6
+
+Estas posiciones van desde:
+1. La posición inicial
+2. Posiciones básicas de apertura
+3. Posiciones típicas del medio juego
+4. Posiciones tácticas con ataques
+5. Posiciones con estructuras de peones complejas
+6. Finales sencillos y complejos
+7. Posiciones con oportunidades tácticas
+8. Posiciones con ventaja posicional
+9. Posiciones con tensión en el centro
+10. Posiciones con desequilibrios materiales

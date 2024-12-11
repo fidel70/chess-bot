@@ -1,0 +1,623 @@
+import sys
+import os
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from typing import Optional, Tuple, List
+import chess
+import pygame
+import time
+import random
+import requests
+from typing import Optional
+pygame.mixer.init()
+
+# Configurar path del proyecto
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+# Importaciones del motor
+from engine.search.evaluator.material import MaterialEvaluator
+from engine.search.minimax import MinimaxEngine
+from engine.search.zobrist_hash import ZobristHash
+
+
+class LichessOpenings:
+    def __init__(self):
+        self.base_url = "https://explorer.lichess.ovh/masters"
+        self.opening_cache = {}
+        self.last_request_time = 0
+        
+    def get_move(self, board: chess.Board) -> Tuple[Optional[chess.Move], Optional[str]]:
+        try:
+            fen = board.fen()
+            if fen in self.opening_cache:
+                return random.choice(self.opening_cache[fen]), self.opening_cache.get(f"{fen}_opening")
+            
+            params = {'fen': fen, 'topGames': 50, 'recentGames': 0}
+            response = requests.get(self.base_url, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Obtener información de la apertura
+                opening_info = None
+                if 'opening' in data:
+                    opening_info = f"{data['opening']['name']} ({data['opening']['eco']})"
+                
+                if 'moves' in data and data['moves']:
+                    available_moves = []
+                    for move_data in data['moves']:
+                        if 'uci' in move_data:
+                            try:
+                                move = chess.Move.from_uci(move_data['uci'])
+                                if move in board.legal_moves:
+                                    available_moves.append(move)
+                            except ValueError:
+                                continue
+                    
+                    if available_moves:
+                        self.opening_cache[fen] = available_moves
+                        if opening_info:
+                            self.opening_cache[f"{fen}_opening"] = opening_info
+                        chosen_move = random.choice(available_moves)
+                        return chosen_move, opening_info
+                        
+        except Exception as e:
+            print(f"Error al consultar la base de datos: {str(e)}")
+        return None, None
+
+class ChessEngine:
+    def __init__(self, evaluator, depth=3):
+        self.minimax_engine = MinimaxEngine(evaluator, depth)
+        self.lichess_db = LichessOpenings()
+        
+    def search(self, board: chess.Board) -> Tuple[chess.Move, float]:
+        book_move = self.lichess_db.get_move(board)
+        if book_move:
+            return book_move, 0.0
+        return self.minimax_engine.search(board)        
+
+
+class ChessPiece(QSvgWidget):
+    def __init__(self, piece, parent=None):
+        super().__init__(parent)
+        self.piece = piece
+        self.load_svg()
+        
+    def load_svg(self):
+        piece_map = {
+            'P': 'wP', 'N': 'wN', 'B': 'wB', 'R': 'wR', 'Q': 'wQ', 'K': 'wK',
+            'p': 'bP', 'n': 'bN', 'b': 'bB', 'r': 'bR', 'q': 'bQ', 'k': 'bK'
+        }
+        piece_file = f"{piece_map[self.piece]}.svg"
+        path = os.path.join('gui', 'resources', 'pieces', piece_file)
+        self.load(path)
+        self.setFixedSize(50, 50)
+
+class ChessSquare(QLabel):
+    def __init__(self, position, color, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.position = position
+        self.setFixedSize(70, 70)
+        self.setAlignment(Qt.AlignCenter)
+        self.setStyleSheet(f"background-color: {color};")
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasText():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        source_square = int(event.mimeData().text())
+        destination_square = self.position
+        self.parent().handle_drop(source_square, destination_square)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton and self.parent().pieces.get(self.position):
+            drag = QDrag(self)
+            mime_data = QMimeData()
+            mime_data.setText(str(self.position))
+            drag.setMimeData(mime_data)
+            piece = self.parent().pieces[self.position]
+            pixmap = piece.grab()
+            drag.setPixmap(pixmap)
+            drag.setHotSpot(event.pos())
+            drag.exec_(Qt.MoveAction)
+
+class ChessBoard(QWidget):
+    move_made = pyqtSignal(str)  # Nueva señal para movimientos realizados
+
+    def __init__(self):
+        super().__init__()
+        self.board = chess.Board()
+        self.squares = {}
+        self.pieces = {}
+        self.move_history = []  # Lista para almacenar el historial de movimientos
+        self.initUI()
+        self.placePieces()
+        self.current_animation = None
+        # En el __init__
+        sound_path = os.path.join(project_root, 'gui', 'resources', 'sounds', 'move.mp3')
+        self.move_sound = pygame.mixer.Sound(sound_path)
+        
+        
+        sound_path = os.path.join(project_root, 'gui', 'resources', 'sounds', 'move.mp3')
+        # En la clase ChessBoard, donde inicializamos el sonido:
+        print(f"Ruta del archivo de sonido: {os.path.abspath(sound_path)}")
+        if os.path.exists(sound_path):
+           print("El archivo existe!")
+           print(f"Tamaño del archivo: {os.path.getsize(sound_path)} bytes")
+        else:
+           print("El archivo NO existe en la ruta especificada")
+
+        self.move_sound = QMediaPlayer()
+        sound_url = QUrl.fromLocalFile(sound_path)
+        self.move_sound.setMedia(QMediaContent(sound_url))
+
+        
+
+    def initUI(self):
+        main_layout = QGridLayout()
+        self.setLayout(main_layout)
+        
+        # Grid del tablero
+        board_grid = QGridLayout()
+        colors = ['#F0D9B5', '#B58863']
+        
+        # Añadir etiquetas de coordenadas (filas)
+        for rank in range(8):
+            rank_label = QLabel(str(8 - rank))
+            rank_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            main_layout.addWidget(rank_label, rank + 1, 0)
+            
+        # Añadir etiquetas de coordenadas (columnas)
+        for file in range(8):
+            file_label = QLabel(chr(97 + file))
+            file_label.setAlignment(Qt.AlignCenter | Qt.AlignBottom)
+            main_layout.addWidget(file_label, 9, file + 1)
+            
+        # Crear y añadir el tablero
+        for rank in range(8):
+            for file in range(8):
+                color = colors[(rank + file) % 2]
+                position = chess.square(file, 7-rank)
+                square = ChessSquare(position, color)
+                self.squares[position] = square
+                board_grid.addWidget(square, rank, file)
+        
+        # Añadir el grid del tablero al layout principal
+        main_layout.addLayout(board_grid, 1, 1, 8, 8)
+        main_layout.setSpacing(5)
+        board_grid.setSpacing(0)
+
+    def handle_drop(self, from_square, to_square):
+        move = chess.Move(from_square, to_square)
+        if self.board.turn and self.board.is_legal(move):
+            # Guardar el movimiento en notación SAN antes de ejecutarlo
+            move_san = self.board.san(move)
+            
+            # Reemplazar:
+            self.move_sound.play()
+
+            # Por:
+            
+            
+            # Usar QTimer para dar tiempo al sonido
+            QTimer.singleShot(1500, lambda: self._complete_move(move, move_san))
+        else:
+            print("Movimiento ilegal o no es tu turno.")
+            
+    def _complete_move(self, move, move_san):
+        self.board.push(move)
+        self.move_history.append(move)
+        self.placePieces()
+        # Emitir señal con el movimiento en notación SAN
+        self.move_made.emit(move_san)
+            
+    def _complete_move(self, move, move_san):
+        self.board.push(move)
+        self.move_history.append(move)
+        self.placePieces()
+        # Emitir señal con el movimiento en notación SAN
+        self.move_made.emit(move_san)
+
+    def animate_move(self, from_square, to_square):
+        if from_square not in self.pieces:
+            return
+                
+        piece = self.pieces[from_square]
+        move = chess.Move(from_square, to_square)
+        
+        if not self.board.is_legal(move):
+            return
+            
+        # Guardar el movimiento en notación SAN antes de ejecutarlo
+        try:
+            move_san = self.board.san(move)
+            self.board.push(move)
+            self.move_history.append(move)
+            
+            # Obtener las posiciones inicial y final
+            start_pos = self.squares[from_square].pos()
+            end_pos = self.squares[to_square].pos()
+            
+            # Crear copia temporal de la pieza para la animación
+            temp_piece = ChessPiece(piece.piece, self)
+            temp_piece.setFixedSize(50, 50)
+            temp_piece.move(start_pos)
+            temp_piece.show()
+            
+            # Crear la animación
+            self.current_animation = QPropertyAnimation(temp_piece, b"pos")
+            self.current_animation.setDuration(500)
+            self.current_animation.setStartValue(start_pos)
+            self.current_animation.setEndValue(end_pos)
+            self.current_animation.setEasingCurve(QEasingCurve.InOutQuad)
+            
+            # Conectar la señal finished
+            self.current_animation.finished.connect(
+                lambda: self.finish_move(from_square, to_square, temp_piece)
+            )
+            
+            # Iniciar la animación
+            self.current_animation.start()
+            
+            # Emitir señal con el movimiento en notación SAN
+            self.move_made.emit(move_san)
+            
+        except ValueError as e:
+            print(f"Error al realizar el movimiento: {e}")
+
+    def finish_move(self, from_square, to_square, temp_piece):
+        temp_piece.deleteLater()
+        self.placePieces()
+
+    def placePieces(self):
+        for square in chess.SQUARES:
+            if self.squares[square].layout():
+                old_layout = self.squares[square].layout()
+                while old_layout.count():
+                    item = old_layout.takeAt(0)
+                    if item.widget():
+                        item.widget().deleteLater()
+                QWidget().setLayout(old_layout)
+
+        self.pieces.clear()
+
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece:
+                chess_piece = ChessPiece(piece.symbol())
+                layout = QVBoxLayout()
+                layout.setContentsMargins(0, 0, 0, 0)
+                layout.addWidget(chess_piece)
+                self.squares[square].setLayout(layout)
+                self.pieces[square] = chess_piece
+
+    def goto_position(self, move_number):
+        self.board = chess.Board()
+        
+        if move_number >= -1:
+            for i in range(move_number + 1):
+                if i < len(self.move_history):
+                    try:
+                        self.board.push(self.move_history[i])
+                    except AssertionError:
+                        print(f"Error al reproducir movimiento {i}")
+                        break
+                        
+        self.placePieces()
+
+    def set_position_from_fen(self, fen: str):
+        try:
+            self.board = chess.Board(fen)
+            
+            for square in chess.SQUARES:
+                if self.squares[square].layout():
+                    old_layout = self.squares[square].layout()
+                    while old_layout.count():
+                        item = old_layout.takeAt(0)
+                        if item.widget():
+                            item.widget().deleteLater()
+                    QWidget().setLayout(old_layout)
+            
+            self.pieces.clear()
+            
+            for square in chess.SQUARES:
+                piece = self.board.piece_at(square)
+                if piece:
+                    chess_piece = ChessPiece(piece.symbol())
+                    layout = QVBoxLayout()
+                    layout.addWidget(chess_piece)
+                    self.squares[square].setLayout(layout)
+                    self.pieces[square] = chess_piece
+                    
+        except ValueError as e:
+            raise ValueError(f"FEN inválido: {str(e)}")
+
+class MoveList(QWidget):
+    move_selected = pyqtSignal(int)  # Nueva señal para cuando se selecciona un movimiento
+    
+    def __init__(self):
+        super().__init__()
+        self.current_move = -1
+        self.moves = []  # Lista para almacenar los movimientos
+        self.initUI()
+    
+    def initUI(self):
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Lista de movimientos
+        self.move_list = QListWidget()
+        self.move_list.itemClicked.connect(self.on_move_clicked)
+        layout.addWidget(self.move_list)
+        
+        # Botones de navegación
+        nav_layout = QHBoxLayout()
+        self.btn_first = QPushButton("<<")
+        self.btn_prev = QPushButton("<")
+        self.btn_next = QPushButton(">")
+        self.btn_last = QPushButton(">>")
+        
+        # Conectar botones
+        self.btn_first.clicked.connect(self.goto_first)
+        self.btn_prev.clicked.connect(self.goto_prev)
+        self.btn_next.clicked.connect(self.goto_next)
+        self.btn_last.clicked.connect(self.goto_last)
+        
+        for btn in [self.btn_first, self.btn_prev, self.btn_next, self.btn_last]:
+            nav_layout.addWidget(btn)
+            
+        layout.addLayout(nav_layout)
+        self.update_navigation_buttons()
+
+    def add_move(self, move_san):
+        """Añade un nuevo movimiento a la lista"""
+        move_number = len(self.moves) // 2 + 1
+        if len(self.moves) % 2 == 0:
+            # Movimiento blanco
+            self.moves.append(move_san)
+            text = f"{move_number}. {move_san}"
+        else:
+            # Movimiento negro
+            self.moves.append(move_san)
+            text = f"{move_number}... {move_san}"
+        
+        self.move_list.addItem(text)
+        self.current_move = len(self.moves) - 1
+        self.move_list.setCurrentRow(self.current_move)
+        self.update_navigation_buttons()
+        
+    def goto_first(self):
+        """Ir al primer movimiento"""
+        if self.moves:
+            self.current_move = -1
+            self.move_list.setCurrentRow(-1)
+            self.move_selected.emit(self.current_move)
+            self.update_navigation_buttons()
+    
+    def goto_prev(self):
+        """Ir al movimiento anterior"""
+        if self.current_move > -1:
+            self.current_move -= 1
+            self.move_list.setCurrentRow(self.current_move)
+            self.move_selected.emit(self.current_move)
+            self.update_navigation_buttons()
+    
+    def goto_next(self):
+        """Ir al siguiente movimiento"""
+        if self.current_move < len(self.moves) - 1:
+            self.current_move += 1
+            self.move_list.setCurrentRow(self.current_move)
+            self.move_selected.emit(self.current_move)
+            self.update_navigation_buttons()
+    
+    def goto_last(self):
+        """Ir al último movimiento"""
+        if self.moves:
+            self.current_move = len(self.moves) - 1
+            self.move_list.setCurrentRow(self.current_move)
+            self.move_selected.emit(self.current_move)
+            self.update_navigation_buttons()
+    
+    def on_move_clicked(self, item):
+        """Manejador para cuando se hace clic en un movimiento"""
+        self.current_move = self.move_list.row(item)
+        self.move_selected.emit(self.current_move)
+        self.update_navigation_buttons()
+    
+    def update_navigation_buttons(self):
+        """Actualiza el estado de los botones de navegación"""
+        self.btn_first.setEnabled(self.current_move > -1)
+        self.btn_prev.setEnabled(self.current_move > -1)
+        self.btn_next.setEnabled(self.current_move < len(self.moves) - 1)
+        self.btn_last.setEnabled(self.current_move < len(self.moves) - 1)
+    
+    def clear(self):
+        """Limpia la lista de movimientos"""
+        self.moves.clear()
+        self.move_list.clear()
+        self.current_move = -1
+        self.update_navigation_buttons()
+
+def get_move(self, board: chess.Board) -> Tuple[Optional[chess.Move], Optional[str]]:
+        try:
+            fen = board.fen()
+            if fen in self.opening_cache:
+                return random.choice(self.opening_cache[fen]), self.opening_cache.get(f"{fen}_opening")
+            
+            params = {'fen': fen, 'topGames': 50, 'recentGames': 0}
+            response = requests.get(self.base_url, params=params)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # Obtener información de la apertura
+                opening_info = None
+                if 'opening' in data:
+                    opening_info = f"{data['opening']['name']} ({data['opening']['eco']})"
+                
+                if 'moves' in data and data['moves']:
+                    available_moves = []
+                    for move_data in data['moves']:
+                        if 'uci' in move_data:
+                            try:
+                                move = chess.Move.from_uci(move_data['uci'])
+                                if move in board.legal_moves:
+                                    available_moves.append(move)
+                            except ValueError:
+                                continue
+                    
+                    if available_moves:
+                        self.opening_cache[fen] = available_moves
+                        if opening_info:
+                            self.opening_cache[f"{fen}_opening"] = opening_info
+                        chosen_move = random.choice(available_moves)
+                        return chosen_move, opening_info
+                        
+        except Exception as e:
+            print(f"Error al consultar la base de datos: {str(e)}")
+        return None, None
+
+
+# Modificar la clase MainWindow, solo el método __init__:
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Chess Engine GUI')
+        self.setMinimumSize(800, 600)
+        
+        # Inicializar el sonido
+        sound_path = os.path.join(os.path.dirname(__file__), 'gui', 'resources', 'sounds', 'move.mp3')
+        self.move_sound = pygame.mixer.Sound(sound_path)
+        
+        self.material_evaluator = MaterialEvaluator()
+        self.engine = ChessEngine(self.material_evaluator, depth=3)
+        
+        self.initUI()
+            
+    def initUI(self):
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        self.createMenuBar()
+        
+        main_layout = QHBoxLayout(central_widget)
+        
+        left_layout = QVBoxLayout()
+        self.board = ChessBoard()
+        left_layout.addWidget(self.board)
+        
+        right_panel = QVBoxLayout()
+        
+        self.move_list = MoveList()
+        right_panel.addWidget(self.move_list)
+        
+        self.engine_controls = EngineControls()
+        right_panel.addWidget(self.engine_controls)
+        
+                        # Conectar señales
+        self.engine_controls.btn_set_position.clicked.connect(self.set_position)
+        self.engine_controls.btn_analyze.clicked.connect(self.analyze_position)
+        
+        main_layout.addLayout(left_layout, 2)
+        main_layout.addLayout(right_panel, 1)
+        
+        # Conectar señales del tablero y la lista de movimientos
+        self.board.move_made.connect(self.move_list.add_move)
+        self.move_list.move_selected.connect(self.board.goto_position)
+
+    def createMenuBar(self):
+        menubar = self.menuBar()
+            
+        file_menu = menubar.addMenu('Archivo')
+        new_game = file_menu.addAction('Nueva Partida')
+        load_game = file_menu.addAction('Cargar PGN')
+        save_game = file_menu.addAction('Guardar PGN')
+        file_menu.addSeparator()
+        exit_action = file_menu.addAction('Salir')
+        
+        engine_menu = menubar.addMenu('Motor')
+        start_analysis = engine_menu.addAction('Iniciar Análisis')
+        stop_analysis = engine_menu.addAction('Detener Análisis')
+        engine_menu.addSeparator()
+        engine_settings = engine_menu.addAction('Configuración')
+
+    def analyze_position(self):
+        """Analiza la posición actual y ejecuta el mejor movimiento encontrado"""
+        
+        try:
+            self.engine_controls.engine_info.setText("Analizando...")
+            self.statusBar().showMessage('Analizando posición...')
+            self.engine_controls.btn_analyze.setEnabled(False)
+            
+            QApplication.processEvents()
+            print("Analizando tablero:", self.board.board.fen())  # Debug
+            
+            depth = self.engine_controls.depth_spin.value()
+            self.engine.max_depth = depth
+            current_board = self.board.board
+            
+            best_move, evaluation = self.engine.search(current_board)
+            print("Movimiento encontrado:", best_move)  # Debug
+            print("Evaluación:", evaluation)  # Debug
+            
+            if best_move:
+            # ... resto del código ...
+                move_san = current_board.san(best_move)
+                self.move_sound.play()  # Ahora sí tendremos acceso a move_sound
+                QTimer.singleShot(1500, lambda: self._complete_engine_move(
+                best_move, move_san, current_board, evaluation))
+            else:
+                self.engine_controls.btn_analyze.setEnabled(True)
+                self.engine_controls.engine_info.setText("No se encontró un movimiento válido")
+                
+        except Exception as e:
+            print(f"Error detallado: {str(e)}")  # Debug
+            self.statusBar().showMessage(f'Error en el análisis: {str(e)}')
+            
+    def _complete_engine_move(self, move, move_san, current_board, evaluation):
+        """Completa el movimiento del motor y actualiza la interfaz"""
+        try:
+            # Actualizar el historial y emitir la señal
+            current_board.push(move)
+            self.board.move_history.append(move)
+            self.board.placePieces()
+            
+            # Actualizar la lista de movimientos
+            self.move_list.add_move(move_san)
+            
+            # Actualizar la información del análisis
+            analysis_text = f"Mejor movimiento: {move_san} - Evaluación: {evaluation/100:.2f}"
+            self.engine_controls.engine_info.setText(analysis_text)
+            self.statusBar().showMessage('Análisis completado')
+            
+        except Exception as e:
+            self.statusBar().showMessage(f'Error al completar el movimiento: {str(e)}')
+            self.engine_controls.engine_info.setText("Error al ejecutar el movimiento")
+        finally:
+            self.engine_controls.btn_analyze.setEnabled(True)       
+
+    
+    def set_position(self):
+        try:
+            fen = self.engine_controls.fen_input.text()
+            self.board.set_position_from_fen(fen)
+            self.statusBar().showMessage('Posición establecida')
+        except ValueError as e:
+            self.statusBar().showMessage(f'Error: {str(e)}')        
+
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
